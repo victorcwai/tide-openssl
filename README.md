@@ -1,8 +1,8 @@
-# Tide rustls listener
+# Tide openssl listener (Work In Progress)
+## openssl listener for [tide](https://github.com/http-rs/tide) using [async-std-openssl](https://github.com/victorcwai/async-std-openssl)
+## Based on [tide-rustls](https://github.com/http-rs/tide-rustls)
 
-## tls listener for [tide](https://github.com/http-rs/tide) based on [async-rustls](https://github.com/smol-rs/async-rustls)
-
-* [CI ![CI][ci-badge]][ci]
+<!-- * [CI ![CI][ci-badge]][ci]
 * [API Docs][docs] [![docs.rs docs][docs-badge]][docs]
 * [Releases][releases] [![crates.io version][version-badge]][lib-rs]
 
@@ -17,7 +17,7 @@
 ## Installation
 ```sh
 $ cargo add tide-rustls
-```
+``` -->
 
 ## Using with tide
 ```rust
@@ -36,9 +36,9 @@ async fn main() -> tide::Result<()> {
 }
 ```
 
-## Safety
+<!-- ## Safety
 This crate uses ``#![deny(unsafe_code)]`` to ensure everything is implemented in
-100% Safe Rust.
+100% Safe Rust. -->
 
 ## License
 

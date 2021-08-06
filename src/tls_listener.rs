@@ -1,8 +1,10 @@
 use crate::custom_tls_acceptor::StandardTlsAcceptor;
+use crate::openssl_listener::SslStream;
 use crate::{
     CustomTlsAcceptor, TcpConnection, TlsListenerBuilder, TlsListenerConfig, TlsStreamWrapper,
 };
 
+use openssl::ssl::{Ssl, SslAcceptor, SslFiletype, SslMethod};
 use tide::listener::ListenInfo;
 use tide::listener::{Listener, ToListener};
 use tide::Server;
@@ -19,13 +21,15 @@ use std::fmt::{self, Debug, Display, Formatter};
 use std::fs::File;
 use std::io::{BufReader, Seek, SeekFrom};
 use std::path::Path;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
 
 /// The primary type for this crate
 pub struct TlsListener<State> {
     connection: TcpConnection,
-    config: TlsListenerConfig,
+    // config: TlsListenerConfig,
+    acceptor: SslAcceptor,
     server: Option<Server<State>>,
     tcp_nodelay: Option<bool>,
     tcp_ttl: Option<u32>,
@@ -35,7 +39,7 @@ impl<State> Debug for TlsListener<State> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("TlsListener")
             .field(&"connection", &self.connection)
-            .field(&"config", &self.config)
+            // .field(&"config", &self.config)
             .field(
                 &"server",
                 if self.server.is_some() {
@@ -53,13 +57,13 @@ impl<State> Debug for TlsListener<State> {
 impl<State> TlsListener<State> {
     pub(crate) fn new(
         connection: TcpConnection,
-        config: TlsListenerConfig,
+        acceptor: SslAcceptor,
         tcp_nodelay: Option<bool>,
         tcp_ttl: Option<u32>,
     ) -> Self {
         Self {
             connection,
-            config,
+            acceptor,
             server: None,
             tcp_nodelay,
             tcp_ttl,
@@ -84,43 +88,54 @@ impl<State> TlsListener<State> {
     }
 
     async fn configure(&mut self) -> io::Result<()> {
-        self.config = match std::mem::take(&mut self.config) {
-            TlsListenerConfig::Paths { cert, key } => {
-                let certs = load_certs(&cert)?;
-                let mut keys = load_keys(&key)?;
-                let mut config = ServerConfig::new(NoClientAuth::new());
-                config
-                    .set_single_cert(certs, keys.remove(0))
-                    .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))?;
-
-                TlsListenerConfig::Acceptor(Arc::new(StandardTlsAcceptor(TlsAcceptor::from(
-                    Arc::new(config),
-                ))))
-            }
-
-            TlsListenerConfig::ServerConfig(config) => TlsListenerConfig::Acceptor(Arc::new(
-                StandardTlsAcceptor(TlsAcceptor::from(Arc::new(config))),
-            )),
-
-            other @ TlsListenerConfig::Acceptor(_) => other,
-
-            TlsListenerConfig::Unconfigured => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "could not configure tlslistener",
-                ));
-            }
-        };
+        //TODO: Do we need to use Arc on SslAcceptor?
+        //TODO: read pk and cert from input
+        let mut acceptor = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+        acceptor
+            .set_private_key_file("key.pem", SslFiletype::PEM)
+            .unwrap();
+        acceptor
+            .set_certificate_chain_file("cert.pem")
+            .unwrap();
+        self.acceptor = acceptor.build();
 
         Ok(())
+
+        // self.config = match std::mem::take(&mut self.config) {
+        //     TlsListenerConfig::Paths { cert, key } => {
+        //         let certs = load_certs(&cert)?;
+        //         let mut keys = load_keys(&key)?;
+        //         let mut config = ServerConfig::new(NoClientAuth::new());
+        //         config
+        //             .set_single_cert(certs, keys.remove(0))
+        //             .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))?;
+
+        //         TlsListenerConfig::Acceptor(Arc::new(StandardTlsAcceptor(TlsAcceptor::from(
+        //             Arc::new(config),
+        //         ))))
+        //     }
+
+        //     TlsListenerConfig::ServerConfig(config) => TlsListenerConfig::Acceptor(Arc::new(
+        //         StandardTlsAcceptor(TlsAcceptor::from(Arc::new(config))),
+        //     )),
+
+        //     other @ TlsListenerConfig::Acceptor(_) => other,
+
+        //     TlsListenerConfig::Unconfigured => {
+        //         return Err(io::Error::new(
+        //             io::ErrorKind::Other,
+        //             "could not configure tlslistener",
+        //         ));
+        //     }
+        // };
     }
 
-    fn acceptor(&self) -> Option<&Arc<dyn CustomTlsAcceptor>> {
-        match self.config {
-            TlsListenerConfig::Acceptor(ref a) => Some(a),
-            _ => None,
-        }
-    }
+    // fn acceptor(&self) -> Option<&Arc<dyn CustomTlsAcceptor>> {
+    //     match self.config {
+    //         TlsListenerConfig::Acceptor(ref a) => Some(a),
+    //         _ => None,
+    //     }
+    // }
 
     fn tcp(&self) -> Option<&TcpListener> {
         match self.connection {
@@ -141,17 +156,16 @@ impl<State> TlsListener<State> {
 fn handle_tls<State: Clone + Send + Sync + 'static>(
     app: Server<State>,
     stream: TcpStream,
-    acceptor: Arc<dyn CustomTlsAcceptor>,
+    acceptor: SslAcceptor,
 ) {
     task::spawn(async move {
         let local_addr = stream.local_addr().ok();
         let peer_addr = stream.peer_addr().ok();
 
-        match acceptor.accept(stream).await {
-            Ok(None) => {}
-
-            Ok(Some(tls_stream)) => {
-                let stream = TlsStreamWrapper::new(tls_stream);
+        let ssl = Ssl::new(acceptor.context()).unwrap();
+        let mut stream = SslStream::new(ssl, stream).unwrap();
+        match Pin::new(&mut stream).accept().await {
+            Ok(_) => {
                 let fut = async_h1::accept(stream, |mut req| async {
                     if req.url_mut().set_scheme("https").is_err() {
                         tide::log::error!("unable to set https scheme on url", { url: req.url().to_string() });
@@ -166,7 +180,6 @@ fn handle_tls<State: Clone + Send + Sync + 'static>(
                     tide::log::error!("async-h1 error", { error: error.to_string() });
                 }
             }
-
             Err(tls_error) => {
                 tide::log::error!("tls error", { error: tls_error.to_string() });
             }
@@ -188,6 +201,13 @@ impl<State: Clone + Send + Sync + 'static> ToListener<State> for TlsListenerBuil
     }
 }
 
+// TODO: not sure if this is correct
+impl<S> Clone for SslStream<S> {
+    fn clone(&self) -> SslStream<S> {
+        (*self).to_owned()
+    }
+}
+
 #[tide::utils::async_trait]
 impl<State: Clone + Send + Sync + 'static> Listener<State> for TlsListener<State> {
     async fn bind(&mut self, server: Server<State>) -> io::Result<()> {
@@ -200,7 +220,7 @@ impl<State: Clone + Send + Sync + 'static> Listener<State> for TlsListener<State
     async fn accept(&mut self) -> io::Result<()> {
         let listener = self.tcp().unwrap();
         let mut incoming = listener.incoming();
-        let acceptor = self.acceptor().unwrap();
+        let acceptor = &self.acceptor;
         let server = self.server.as_ref().unwrap();
 
         while let Some(stream) = incoming.next().await {

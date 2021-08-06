@@ -18,3 +18,6 @@ async-rustls = "0.2.0"
 rustls = "0.19.0"
 async-h1 = "2.3.2"
 async-dup = "1.2.2"
+openssl = "0.10.32"
+openssl-sys = "0.9"
+futures-util = { version = "0.3", default-features = false }
