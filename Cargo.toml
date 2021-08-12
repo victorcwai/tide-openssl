@@ -1,14 +1,14 @@
 [package]
-name = "tide-rustls"
-version = "0.3.0"
-authors = ["Jacob Rothstein <hi@jbr.me>"]
+name = "tide-openssl"
+version = "0.1.0"
+authors = ["victorcwai"]
 edition = "2018"
-description = "tide tls listener based on async-rustls and rustls"
+description = "tide openssl listener based on async-std-openssl"
 readme = "README.md"
-repository = "https://github.com/jbr/tide-rustls"
-documentation = "https://docs.rs/tide-rustls"
+repository = "https://github.com/victorcwai/tide-openssl"
+documentation = "https://docs.rs/tide-openssl"
 license = "MIT OR Apache-2.0"
-keywords = ["tide", "https", "tls"]
+keywords = ["tide", "https", "tls", "openssl"]
 categories = ["web-programming::http-server", "web-programming"]
 
 [dependencies]

@@ -1,7 +1,8 @@
 use crate::custom_tls_acceptor::StandardTlsAcceptor;
 use crate::openssl_listener::SslStream;
+use crate::tls_stream_wrapper::SslStreamWrapper;
 use crate::{
-    CustomTlsAcceptor, TcpConnection, TlsListenerBuilder, TlsListenerConfig, TlsStreamWrapper,
+    CustomTlsAcceptor, TcpConnection, TlsListenerBuilder, TlsListenerConfig,
 };
 
 use openssl::ssl::{Ssl, SslAcceptor, SslFiletype, SslMethod};
@@ -163,9 +164,10 @@ fn handle_tls<State: Clone + Send + Sync + 'static>(
         let peer_addr = stream.peer_addr().ok();
 
         let ssl = Ssl::new(acceptor.context()).unwrap();
-        let mut stream = SslStream::new(ssl, stream).unwrap();
-        match Pin::new(&mut stream).accept().await {
+        let mut ssl_stream = SslStream::new(ssl, stream).unwrap();
+        match Pin::new(&mut ssl_stream).accept().await {
             Ok(_) => {
+                let stream = SslStreamWrapper::new(ssl_stream);
                 let fut = async_h1::accept(stream, |mut req| async {
                     if req.url_mut().set_scheme("https").is_err() {
                         tide::log::error!("unable to set https scheme on url", { url: req.url().to_string() });

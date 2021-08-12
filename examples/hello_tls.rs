@@ -1,6 +1,6 @@
 use std::env;
 use tide::prelude::*;
-use tide_rustls::TlsListener;
+use tide_openssl::TlsListener;
 
 async fn endpoint(req: tide::Request<()>) -> tide::Result<impl Into<tide::Response>> {
     Ok(json!({

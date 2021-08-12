@@ -221,9 +221,7 @@ impl<State> TlsListenerBuilder<State> {
         acceptor
             .set_private_key_file("key.pem", SslFiletype::PEM)
             .unwrap();
-        acceptor
-            .set_certificate_chain_file("cert.pem")
-            .unwrap();
+        acceptor.set_certificate_chain_file("cert.pem").unwrap();
         let acceptor = acceptor.build();
 
         let connection = match (tcp, addrs) {

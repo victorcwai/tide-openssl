@@ -1,20 +1,24 @@
 use async_dup::{Arc, Mutex};
-use async_rustls::server::TlsStream;
 use async_std::io::{Read, Result, Write};
 use async_std::net::TcpStream;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-#[derive(Clone)]
-pub(crate) struct TlsStreamWrapper(Arc<Mutex<TlsStream<TcpStream>>>);
+use crate::openssl_listener::SslStream;
 
-impl TlsStreamWrapper {
-    pub(crate) fn new(stream: TlsStream<TcpStream>) -> Self {
+// Ref: https://stackoverflow.com/questions/61643574/how-can-i-clone-an-opensslsslsslstream
+// "SSL / TLS logic contains state. All the clones need to agree on and update that state.
+// You will need to wrap it in an Arc<Mutex<_>> or equivalent and clone that."
+#[derive(Clone)]
+pub(crate) struct SslStreamWrapper(Arc<Mutex<SslStream<TcpStream>>>);
+
+impl SslStreamWrapper {
+    pub(crate) fn new(stream: SslStream<TcpStream>) -> Self {
         Self(Arc::new(Mutex::new(stream)))
     }
 }
 
-impl Read for TlsStreamWrapper {
+impl Read for SslStreamWrapper {
     fn poll_read(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -24,7 +28,7 @@ impl Read for TlsStreamWrapper {
     }
 }
 
-impl Write for TlsStreamWrapper {
+impl Write for SslStreamWrapper {
     fn poll_write(self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<Result<usize>> {
         Pin::new(&mut &*self.0).poll_write(cx, buf)
     }

@@ -29,16 +29,15 @@
 )]
 
 mod custom_tls_acceptor;
+mod openssl_listener;
 mod tcp_connection;
 mod tls_listener;
 mod tls_listener_builder;
 mod tls_listener_config;
 mod tls_stream_wrapper;
-mod openssl_listener;
 
 pub(crate) use tcp_connection::TcpConnection;
 pub(crate) use tls_listener_config::TlsListenerConfig;
-pub(crate) use tls_stream_wrapper::TlsStreamWrapper;
 
 pub use custom_tls_acceptor::CustomTlsAcceptor;
 pub use tls_listener::TlsListener;

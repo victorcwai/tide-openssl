@@ -125,7 +125,10 @@ where
     }
 
     /// Like [`SslStream::accept`](ssl::SslStream::accept).
-    pub(crate) fn poll_accept(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), ssl::Error>> {
+    pub(crate) fn poll_accept(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), ssl::Error>> {
         self.with_context(cx, |s| cvt_ossl(s.accept()))
     }
 
