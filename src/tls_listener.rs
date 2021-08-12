@@ -1,5 +1,5 @@
 use crate::custom_tls_acceptor::StandardTlsAcceptor;
-use crate::openssl_listener::SslStream;
+use crate::openssl_stream::SslStream;
 use crate::tls_stream_wrapper::SslStreamWrapper;
 use crate::{
     CustomTlsAcceptor, TcpConnection, TlsListenerBuilder, TlsListenerConfig,

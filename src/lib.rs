@@ -29,7 +29,7 @@
 )]
 
 mod custom_tls_acceptor;
-mod openssl_listener;
+mod openssl_stream;
 mod tcp_connection;
 mod tls_listener;
 mod tls_listener_builder;

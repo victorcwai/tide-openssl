@@ -4,7 +4,7 @@ use async_std::net::TcpStream;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use crate::openssl_listener::SslStream;
+use crate::openssl_stream::SslStream;
 
 // Ref: https://stackoverflow.com/questions/61643574/how-can-i-clone-an-opensslsslsslstream
 // "SSL / TLS logic contains state. All the clones need to agree on and update that state.
