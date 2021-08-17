@@ -1,4 +1,4 @@
-# Tide openssl listener (Work In Progress)
+# Tide openssl listener
 ## openssl listener for [tide](https://github.com/http-rs/tide) using [async-std-openssl](https://github.com/victorcwai/async-std-openssl)
 ## Based on [tide-rustls](https://github.com/http-rs/tide-rustls)
 
