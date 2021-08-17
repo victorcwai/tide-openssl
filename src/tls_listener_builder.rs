@@ -51,7 +51,7 @@ use std::sync::Arc;
 pub struct TlsListenerBuilder<State> {
     key: Option<PathBuf>,
     cert: Option<PathBuf>,
-    // config: Option<ServerConfig>,
+    config: Option<ServerConfig>,
     // tls_acceptor: Option<Arc<dyn CustomTlsAcceptor>>,
     tcp: Option<TcpListener>,
     addrs: Option<Vec<SocketAddr>>,
@@ -65,7 +65,7 @@ impl<State> Default for TlsListenerBuilder<State> {
         Self {
             key: None,
             cert: None,
-            // config: None,
+            config: None,
             // tls_acceptor: None,
             tcp: None,
             addrs: None,
@@ -195,7 +195,7 @@ impl<State> TlsListenerBuilder<State> {
         let Self {
             key,
             cert,
-            // config,
+            config,
             // tls_acceptor,
             tcp,
             addrs,
@@ -204,25 +204,18 @@ impl<State> TlsListenerBuilder<State> {
             ..
         } = self;
 
-        // let config = match (key, cert, config, tls_acceptor) {
-        //     (Some(key), Some(cert), None, None) => TlsListenerConfig::Paths { key, cert },
-        //     (None, None, Some(config), None) => TlsListenerConfig::ServerConfig(config),
-        //     (None, None, None, Some(tls_acceptor)) => TlsListenerConfig::Acceptor(tls_acceptor),
-        //     _ => {
-        //         return Err(io::Error::new(
-        //             io::ErrorKind::InvalidInput,
-        //             "need exactly one of cert + key, ServerConfig, or TLS acceptor",
-        //         ))
-        //     }
-        // };
-
-        // TODO: read pk and cert from input
-        let mut acceptor = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-        acceptor
-            .set_private_key_file("key.pem", SslFiletype::PEM)
-            .unwrap();
-        acceptor.set_certificate_chain_file("cert.pem").unwrap();
-        let acceptor = acceptor.build();
+        // For now, support configuration with key and cert files only
+        let config = match (key, cert) {
+            (Some(key), Some(cert)) => TlsListenerConfig::Paths { key, cert },
+            // (None, None, Some(config), None) => TlsListenerConfig::ServerConfig(config),
+            // (None, None, None, Some(tls_acceptor)) => TlsListenerConfig::Acceptor(tls_acceptor),
+            _ => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "need exactly one of cert + key, ServerConfig, or TLS acceptor",
+                ))
+            }
+        };
 
         let connection = match (tcp, addrs) {
             (Some(tcp), None) => TcpConnection::Connected(tcp),
@@ -235,6 +228,6 @@ impl<State> TlsListenerBuilder<State> {
             }
         };
 
-        Ok(TlsListener::new(connection, acceptor, tcp_nodelay, tcp_ttl))
+        Ok(TlsListener::new(connection, config, tcp_nodelay, tcp_ttl))
     }
 }

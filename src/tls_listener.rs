@@ -1,9 +1,7 @@
 use crate::custom_tls_acceptor::StandardTlsAcceptor;
 use crate::openssl_stream::SslStream;
 use crate::tls_stream_wrapper::SslStreamWrapper;
-use crate::{
-    CustomTlsAcceptor, TcpConnection, TlsListenerBuilder, TlsListenerConfig,
-};
+use crate::{CustomTlsAcceptor, TcpConnection, TlsListenerBuilder, TlsListenerConfig};
 
 use openssl::ssl::{Ssl, SslAcceptor, SslFiletype, SslMethod};
 use tide::listener::ListenInfo;
@@ -29,8 +27,8 @@ use std::time::Duration;
 /// The primary type for this crate
 pub struct TlsListener<State> {
     connection: TcpConnection,
-    // config: TlsListenerConfig,
-    acceptor: SslAcceptor,
+    config: TlsListenerConfig,
+    acceptor: Option<SslAcceptor>,
     server: Option<Server<State>>,
     tcp_nodelay: Option<bool>,
     tcp_ttl: Option<u32>,
@@ -58,13 +56,14 @@ impl<State> Debug for TlsListener<State> {
 impl<State> TlsListener<State> {
     pub(crate) fn new(
         connection: TcpConnection,
-        acceptor: SslAcceptor,
+        config: TlsListenerConfig,
         tcp_nodelay: Option<bool>,
         tcp_ttl: Option<u32>,
     ) -> Self {
         Self {
             connection,
-            acceptor,
+            config,
+            acceptor: None,
             server: None,
             tcp_nodelay,
             tcp_ttl,
@@ -89,18 +88,25 @@ impl<State> TlsListener<State> {
     }
 
     async fn configure(&mut self) -> io::Result<()> {
-        //TODO: Do we need to use Arc on SslAcceptor?
-        //TODO: read pk and cert from input
-        let mut acceptor = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-        acceptor
-            .set_private_key_file("key.pem", SslFiletype::PEM)
-            .unwrap();
-        acceptor
-            .set_certificate_chain_file("cert.pem")
-            .unwrap();
-        self.acceptor = acceptor.build();
+        // TODO: Support ServerConfig and CustomTlsAcceptor
+        match &self.config {
+            TlsListenerConfig::Paths { cert, key } => {
+                let mut acceptor = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+                acceptor
+                    .set_private_key_file(key, SslFiletype::PEM)
+                    .unwrap();
+                acceptor.set_certificate_chain_file(cert).unwrap();
+                self.acceptor = Some(acceptor.build());
 
-        Ok(())
+                Ok(())
+            }
+            _ => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "need exactly one of cert + key",
+                ))
+            }
+        }
 
         // self.config = match std::mem::take(&mut self.config) {
         //     TlsListenerConfig::Paths { cert, key } => {
@@ -203,13 +209,6 @@ impl<State: Clone + Send + Sync + 'static> ToListener<State> for TlsListenerBuil
     }
 }
 
-// TODO: not sure if this is correct
-impl<S> Clone for SslStream<S> {
-    fn clone(&self) -> SslStream<S> {
-        (*self).to_owned()
-    }
-}
-
 #[tide::utils::async_trait]
 impl<State: Clone + Send + Sync + 'static> Listener<State> for TlsListener<State> {
     async fn bind(&mut self, server: Server<State>) -> io::Result<()> {
@@ -222,7 +221,7 @@ impl<State: Clone + Send + Sync + 'static> Listener<State> for TlsListener<State
     async fn accept(&mut self) -> io::Result<()> {
         let listener = self.tcp().unwrap();
         let mut incoming = listener.incoming();
-        let acceptor = &self.acceptor;
+        let acceptor = self.acceptor.as_ref().unwrap();
         let server = self.server.as_ref().unwrap();
 
         while let Some(stream) = incoming.next().await {
