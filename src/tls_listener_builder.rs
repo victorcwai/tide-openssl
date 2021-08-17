@@ -1,15 +1,13 @@
 use async_std::io;
 use async_std::net::TcpListener;
 
-use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use rustls::ServerConfig;
 
-use super::{CustomTlsAcceptor, TcpConnection, TlsListener, TlsListenerConfig};
+use super::{TcpConnection, TlsListener, TlsListenerConfig};
 
 use std::marker::PhantomData;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 /// # A builder for TlsListeners
 ///
@@ -26,14 +24,6 @@ use std::sync::Arc;
 ///     .addrs("localhost:4433")
 ///     .cert("./tls/localhost-4433.cert")
 ///     .key("./tls/localhost-4433.key")
-///     .finish();
-/// ```
-///
-/// ```rust
-/// # use tide_rustls::TlsListener;
-/// let listener = TlsListener::<()>::build()
-///     .tcp(std::net::TcpListener::bind("localhost:4433").unwrap())
-///     .config(rustls::ServerConfig::new(rustls::NoClientAuth::new()))
 ///     .finish();
 /// ```
 ///
@@ -81,14 +71,14 @@ impl<State> std::fmt::Debug for TlsListenerBuilder<State> {
         f.debug_struct("TlsListenerBuilder")
             .field("key", &self.key)
             .field("cert", &self.cert)
-            // .field(
-            //     "config",
-            //     &if self.config.is_some() {
-            //         "Some(ServerConfig { .. })"
-            //     } else {
-            //         "None"
-            //     },
-            // )
+            .field(
+                "config",
+                &if self.config.is_some() {
+                    "Some(ServerConfig { .. })"
+                } else {
+                    "None"
+                },
+            )
             // .field(
             //     "tls_acceptor",
             //     &if self.tls_acceptor.is_some() {
@@ -195,7 +185,7 @@ impl<State> TlsListenerBuilder<State> {
         let Self {
             key,
             cert,
-            config,
+            // config,
             // tls_acceptor,
             tcp,
             addrs,
