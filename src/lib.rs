@@ -28,8 +28,6 @@
     unused_qualifications
 )]
 
-mod custom_tls_acceptor;
-mod openssl_stream;
 mod tcp_connection;
 mod tls_listener;
 mod tls_listener_builder;
@@ -39,9 +37,5 @@ mod tls_stream_wrapper;
 pub(crate) use tcp_connection::TcpConnection;
 pub(crate) use tls_listener_config::TlsListenerConfig;
 
-pub use custom_tls_acceptor::CustomTlsAcceptor;
 pub use tls_listener::TlsListener;
 pub use tls_listener_builder::TlsListenerBuilder;
-
-pub use async_rustls;
-pub use rustls;

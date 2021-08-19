@@ -3,7 +3,7 @@ name = "tide-openssl"
 version = "0.1.0"
 authors = ["victorcwai"]
 edition = "2018"
-description = "tide openssl listener based on async-std-openssl"
+description = "tide openssl listener based on async-std-openssl. Based on http-rs/tide-rustls"
 readme = "README.md"
 repository = "https://github.com/victorcwai/tide-openssl"
 documentation = "https://docs.rs/tide-openssl"
@@ -14,10 +14,9 @@ categories = ["web-programming::http-server", "web-programming"]
 [dependencies]
 async-std = "1.9.0"
 tide = { version = "0.16.0", default-features = false }
-async-rustls = "0.2.0"
-rustls = "0.19.0"
 async-h1 = "2.3.2"
 async-dup = "1.2.2"
 openssl = "0.10.32"
 openssl-sys = "0.9"
 futures-util = { version = "0.3", default-features = false }
+async-std-openssl = "0.6.2"

@@ -1,8 +1,6 @@
 use async_std::io;
 use async_std::net::TcpListener;
 
-use rustls::ServerConfig;
-
 use super::{TcpConnection, TlsListener, TlsListenerConfig};
 
 use std::marker::PhantomData;
@@ -41,7 +39,7 @@ use std::path::{Path, PathBuf};
 pub struct TlsListenerBuilder<State> {
     key: Option<PathBuf>,
     cert: Option<PathBuf>,
-    config: Option<ServerConfig>,
+    // config: Option<ServerConfig>,
     // tls_acceptor: Option<Arc<dyn CustomTlsAcceptor>>,
     tcp: Option<TcpListener>,
     addrs: Option<Vec<SocketAddr>>,
@@ -55,7 +53,7 @@ impl<State> Default for TlsListenerBuilder<State> {
         Self {
             key: None,
             cert: None,
-            config: None,
+            // config: None,
             // tls_acceptor: None,
             tcp: None,
             addrs: None,
@@ -71,14 +69,14 @@ impl<State> std::fmt::Debug for TlsListenerBuilder<State> {
         f.debug_struct("TlsListenerBuilder")
             .field("key", &self.key)
             .field("cert", &self.cert)
-            .field(
-                "config",
-                &if self.config.is_some() {
-                    "Some(ServerConfig { .. })"
-                } else {
-                    "None"
-                },
-            )
+            // .field(
+            //     "config",
+            //     &if self.config.is_some() {
+            //         "Some(ServerConfig { .. })"
+            //     } else {
+            //         "None"
+            //     },
+            // )
             // .field(
             //     "tls_acceptor",
             //     &if self.tls_acceptor.is_some() {
