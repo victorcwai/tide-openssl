@@ -74,7 +74,7 @@ impl<State> TlsListener<State> {
     /// # Example
     ///
     /// ```rust
-    /// # use tide_rustls::TlsListener;
+    /// # use tide_openssl::TlsListener;
     /// let listener = TlsListener::<()>::build()
     ///     .addrs("localhost:4433")
     ///     .cert("./tls/localhost-4433.cert")
@@ -89,11 +89,12 @@ impl<State> TlsListener<State> {
         // TODO: Support ServerConfig and CustomTlsAcceptor
         match &self.config {
             TlsListenerConfig::Paths { cert, key } => {
-                let mut acceptor = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+                let mut acceptor = SslAcceptor::mozilla_modern(SslMethod::tls())
+                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
                 acceptor
                     .set_private_key_file(key, SslFiletype::PEM)
-                    .unwrap();
-                acceptor.set_certificate_chain_file(cert).unwrap();
+                    .and_then(|_| acceptor.set_certificate_chain_file(cert))
+                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
                 self.acceptor = Some(acceptor.build());
 
                 Ok(())
@@ -167,8 +168,15 @@ fn handle_tls<State: Clone + Send + Sync + 'static>(
         let local_addr = stream.local_addr().ok();
         let peer_addr = stream.peer_addr().ok();
 
-        let ssl = Ssl::new(acceptor.context()).unwrap();
-        let mut ssl_stream = SslStream::new(ssl, stream).unwrap();
+        let ssl_stream = Ssl::new(acceptor.context()).and_then(|ssl| SslStream::new(ssl, stream));
+        let mut ssl_stream = match ssl_stream {
+            Ok(s) => s,
+            Err(e) => {
+                tide::log::error!("ssl error", { error: e.to_string() });
+                return;
+            }
+        };
+
         match Pin::new(&mut ssl_stream).accept().await {
             Ok(_) => {
                 let stream = SslStreamWrapper::new(ssl_stream);
@@ -217,10 +225,18 @@ impl<State: Clone + Send + Sync + 'static> Listener<State> for TlsListener<State
     }
 
     async fn accept(&mut self) -> io::Result<()> {
-        let listener = self.tcp().unwrap();
+        let listener = self
+            .tcp()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "accept - listener"))?;
         let mut incoming = listener.incoming();
-        let acceptor = self.acceptor.as_ref().unwrap();
-        let server = self.server.as_ref().unwrap();
+        let acceptor = self
+            .acceptor
+            .as_ref()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "accept - acceptor"))?;
+        let server = self
+            .server
+            .as_ref()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "accept - server"))?;
 
         while let Some(stream) = incoming.next().await {
             match stream {

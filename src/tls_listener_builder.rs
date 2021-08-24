@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 /// # Examples
 ///
 /// ```rust
-/// # use tide_rustls::TlsListener;
+/// # use tide_openssl::TlsListener;
 /// let listener = TlsListener::<()>::build()
 ///     .addrs("localhost:4433")
 ///     .cert("./tls/localhost-4433.cert")
@@ -26,7 +26,7 @@ use std::path::{Path, PathBuf};
 /// ```
 ///
 /// ```rust
-/// # use tide_rustls::TlsListener;
+/// # use tide_openssl::TlsListener;
 /// let listener = TlsListener::<()>::build()
 ///     .addrs("localhost:4433")
 ///     .cert("./tls/localhost-4433.cert")
@@ -107,7 +107,7 @@ impl<State> TlsListenerBuilder<State> {
         self
     }
 
-    /// Provide a path to a cert file. This is mutually exclusive with
+    /// Provide a path to a certificate chain file. This is mutually exclusive with
     /// providing a server config with [`TlsListenerBuilder::config`],
     /// but must be used in conjunction with
     /// [`TlsListenerBuilder::key`]
@@ -148,6 +148,11 @@ impl<State> TlsListenerBuilder<State> {
     /// Provides a [`std::net::ToSocketAddrs`] specification for this
     /// tls listener. This is mutually exclusive with
     /// [`TlsListenerBuilder::tcp`] but one of them is mandatory.
+    ///
+    /// If addr yields multiple addresses, bind will be attempted with
+    /// each of the addresses until one succeeds and returns the listener.
+    /// If none of the addresses succeed in creating a listener, the error
+    /// returned from the last attempt (the last address) is returned.
     pub fn addrs(mut self, addrs: impl ToSocketAddrs) -> Self {
         if let Ok(socket_addrs) = addrs.to_socket_addrs() {
             self.addrs = Some(socket_addrs.collect());
