@@ -19,5 +19,4 @@ async-dup = "1.2"
 openssl = "0.10"
 openssl-sys = "0.9"
 futures-util = { version = "0.3", default-features = false }
-
 async-std-openssl = "^0.6.3"
