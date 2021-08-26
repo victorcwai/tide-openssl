@@ -1,6 +1,6 @@
 [package]
 name = "tide-openssl"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["victorcwai"]
 edition = "2018"
 description = "tide openssl listener based on async-std-openssl. Based on http-rs/tide-rustls"
