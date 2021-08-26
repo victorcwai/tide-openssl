@@ -32,7 +32,6 @@ mod tcp_connection;
 mod tls_listener;
 mod tls_listener_builder;
 mod tls_listener_config;
-mod tls_stream_wrapper;
 
 pub(crate) use tcp_connection::TcpConnection;
 pub(crate) use tls_listener_config::TlsListenerConfig;

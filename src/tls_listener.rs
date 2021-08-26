@@ -1,6 +1,6 @@
-use crate::tls_stream_wrapper::SslStreamWrapper;
 use crate::{TcpConnection, TlsListenerBuilder, TlsListenerConfig};
 use async_std_openssl::SslStream;
+use async_std_openssl::SslStreamWrapper;
 
 use openssl::ssl::{Ssl, SslAcceptor, SslFiletype, SslMethod};
 use tide::listener::ListenInfo;
