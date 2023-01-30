@@ -89,7 +89,7 @@ impl<State> TlsListener<State> {
         // TODO: Support ServerConfig and CustomTlsAcceptor
         match &self.config {
             TlsListenerConfig::Paths { cert, key } => {
-                let mut acceptor = SslAcceptor::mozilla_modern(SslMethod::tls())
+                let mut acceptor = SslAcceptor::mozilla_modern_v5(SslMethod::tls())
                     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
                 acceptor
                     .set_private_key_file(key, SslFiletype::PEM)

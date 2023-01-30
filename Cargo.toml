@@ -16,7 +16,7 @@ async-std = "1.9"
 tide = { version = "0.16", default-features = false }
 async-h1 = "2.3"
 async-dup = "1.2"
-openssl = "0.10"
+openssl = "^0.10.45"
 openssl-sys = "0.9"
 futures-util = { version = "0.3", default-features = false }
 async-std-openssl = "^0.6.3"
